@@ -39,6 +39,9 @@ public class Lot {
     @OneToMany(mappedBy = "lot", cascade = CascadeType.ALL)
     private List<Bid> bids;
 
+    @NotNull
+    private String description;
+
     public Lot() {
         this.bids = new ArrayList<>();
         this.status = LotState.BIDDING_STARTED;
@@ -130,5 +133,13 @@ public class Lot {
     public boolean canBeBidded() {
         LocalDateTime now = LocalDateTime.now();
         return (now.isAfter(biddingStartTime) && now.isBefore(biddingEndTime) && status == LotState.BIDDING_STARTED);
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

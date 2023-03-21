@@ -1,5 +1,8 @@
 package com.example.course_work_auction.controllers;
 
+import com.example.course_work_auction.dto.BidDto;
+import com.example.course_work_auction.dto.FullLotDto;
+import com.example.course_work_auction.model.Bid;
 import com.example.course_work_auction.model.Lot;
 import com.example.course_work_auction.repositories.LotRepository;
 import com.example.course_work_auction.service.LotService;
@@ -8,6 +11,8 @@ import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.exceptions.CsvDataTypeMismatchException;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +23,8 @@ import java.io.IOException;
 
 
 @RestController
-@RequestMapping("/lots")
+@RequestMapping("/lot")
+@Api(value = "Lot Controller", tags = {"Lot Controller"})
 public class LotController {
 
     @Autowired
@@ -27,28 +33,27 @@ public class LotController {
     @Autowired
     private LotRepository lotRepository;
 
-    // Get the number of bids for a lot
-    @GetMapping("/{id}/bids/count")
-    public ResponseEntity<Integer> getBidsCount(@PathVariable Long id) {
-        int count = lotService.getBidCountForLot(id);
-        return ResponseEntity.ok(count);
+    @ApiOperation(value = "Get the first bidder for a lot", response = Bid.class)
+    @GetMapping("/{id}/first")
+    public ResponseEntity<Bid> getFirstBidder(@PathVariable Long id) {
+        Bid bid = lotService.getFirstBidder(id);
+        return ResponseEntity.ok(bid);
     }
 
-    // Get the current price for a lot
-    @GetMapping("/{id}/price")
-    public ResponseEntity<Integer> getCurrentPrice(@PathVariable Long id) {
-        int price = lotService.getCurrentPrice(id);
-        return ResponseEntity.ok(price);
+    @ApiOperation(value = "Get the most frequent bidder for a lot", response = BidDto.class)
+    @GetMapping("/{id}/frequent")
+    public ResponseEntity<BidDto> getMostFrequentBidder(@PathVariable("id") Long lotID) {
+        BidDto bidDto = lotService.getMostFrequentBidder(lotID);
+        return ResponseEntity.ok(bidDto);
     }
 
-    // Get the bidding status for a lot
-    @GetMapping("/{id}/status")
-    public ResponseEntity<String> getStatus(@PathVariable Long id) {
-        String status = lotService.getStatus(id);
-        return ResponseEntity.ok(status);
+    @GetMapping("/lot/{id}")
+    public FullLotDto getFullLot(@PathVariable Long id) {
+        return lotService.getFullLotById(id);
     }
 
-    @GetMapping("/lots/export")
+    // Export lots to CSV
+    @GetMapping("/export")
     public void exportLots(HttpServletResponse response) throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
         response.setContentType("text/csv");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"lots.csv\"");
