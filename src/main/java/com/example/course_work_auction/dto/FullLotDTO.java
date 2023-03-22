@@ -1,49 +1,32 @@
-package com.example.course_work_auction.model;
+package com.example.course_work_auction.dto;
 
-import com.example.course_work_auction.dto.BidDTO;
-import com.example.course_work_auction.enums.LotStatus;
+import com.example.course_work_auction.model.Lot;
 
-import javax.persistence.*;
-import java.util.List;
-
-@Entity
-@Table(name = "lot")
-public class Lot {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "lot_id")
+public class FullLotDTO {
     private Long id;
     private String status;
     private String title;
     private String description;
     private Integer startPrice;
     private Integer bidPrice;
-    @OneToMany(mappedBy = "lot")
-    private List<Bid> bids;
+    private Integer currentPrice;
+    private BidDTO lastBid;
 
-    public Lot() {
+    public FullLotDTO() {
     }
-    public Integer getCurrentPrice(){
-        if(this.getStatus().equals(LotStatus.CREATED.toString())){
-            return startPrice;
-        } else {
-            return (bids.size() * bidPrice) + startPrice;
-        }
-    }
-    public BidDTO getLastBid(){
-        if(this.getBids() == null || this.getBids().size() == 0){
-            return new BidDTO("clear", "clear");
-        }
-        return BidDTO.fromBid(this.getBids().get(this.getBids().size()-1));
-    }
-
-    public List<Bid> getBids() {
-        return bids;
+    public static FullLotDTO fromLot( Lot lot){
+        FullLotDTO dto = new FullLotDTO();
+        dto.setId(lot.getId());
+        dto.setStatus(lot.getStatus());
+        dto.setTitle(lot.getTitle());
+        dto.setDescription(lot.getDescription());
+        dto.setStartPrice(lot.getStartPrice());
+        dto.setBidPrice(lot.getBidPrice());
+        dto.setCurrentPrice(lot.getCurrentPrice());
+        dto.setLastBid(lot.getLastBid());
+        return dto;
     }
 
-    public void setBids( List<Bid> bids ) {
-        this.bids = bids;
-    }
 
     public Long getId() {
         return id;
@@ -91,5 +74,21 @@ public class Lot {
 
     public void setBidPrice( Integer bidPrice ) {
         this.bidPrice = bidPrice;
+    }
+
+    public Integer getCurrentPrice() {
+        return currentPrice;
+    }
+
+    public void setCurrentPrice( Integer currentPrice ) {
+        this.currentPrice = currentPrice;
+    }
+
+    public BidDTO getLastBid() {
+        return lastBid;
+    }
+
+    public void setLastBid( BidDTO lastBid ) {
+        this.lastBid = lastBid;
     }
 }

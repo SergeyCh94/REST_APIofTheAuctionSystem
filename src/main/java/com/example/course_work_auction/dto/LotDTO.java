@@ -1,48 +1,26 @@
-package com.example.course_work_auction.model;
+package com.example.course_work_auction.dto;
 
-import com.example.course_work_auction.dto.BidDTO;
-import com.example.course_work_auction.enums.LotStatus;
+import com.example.course_work_auction.model.Lot;
 
-import javax.persistence.*;
-import java.util.List;
-
-@Entity
-@Table(name = "lot")
-public class Lot {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "lot_id")
+public class LotDTO {
     private Long id;
     private String status;
     private String title;
     private String description;
     private Integer startPrice;
     private Integer bidPrice;
-    @OneToMany(mappedBy = "lot")
-    private List<Bid> bids;
 
-    public Lot() {
+    public LotDTO() {
     }
-    public Integer getCurrentPrice(){
-        if(this.getStatus().equals(LotStatus.CREATED.toString())){
-            return startPrice;
-        } else {
-            return (bids.size() * bidPrice) + startPrice;
-        }
-    }
-    public BidDTO getLastBid(){
-        if(this.getBids() == null || this.getBids().size() == 0){
-            return new BidDTO("clear", "clear");
-        }
-        return BidDTO.fromBid(this.getBids().get(this.getBids().size()-1));
-    }
-
-    public List<Bid> getBids() {
-        return bids;
-    }
-
-    public void setBids( List<Bid> bids ) {
-        this.bids = bids;
+    public static LotDTO fromLot( Lot lot){
+        LotDTO dto = new LotDTO();
+        dto.setId(lot.getId());
+        dto.setStatus(lot.getStatus());
+        dto.setTitle(lot.getTitle());
+        dto.setDescription(lot.getDescription());
+        dto.setStartPrice(lot.getStartPrice());
+        dto.setBidPrice(lot.getBidPrice());
+        return dto;
     }
 
     public Long getId() {

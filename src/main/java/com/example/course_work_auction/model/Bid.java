@@ -1,44 +1,40 @@
 package com.example.course_work_auction.model;
 
+import com.sun.istack.NotNull;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "bid")
 public class Bid {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "bid_id")
     private Long id;
-
-    @NotBlank
-    @Size(min = 2, max = 50)
     private String bidderName;
-
-    private Double bidAmount;
-
-    private LocalDateTime bidDateTime;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lot_id")
+    private String bidDate;
+    @ManyToOne
     private Lot lot;
 
-    public Bid(String bidderName, Double bidAmount, LocalDateTime bidDateTime) {
-        this.bidderName = bidderName;
-        this.bidAmount = bidAmount;
-        this.bidDateTime = bidDateTime;
+    public Bid() {
     }
 
-    public Bid() {
+    public Lot getLot() {
+        return lot;
+    }
 
+    public void setLot( Lot lot ) {
+        this.lot = lot;
     }
 
     public Long getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId( Long id ) {
         this.id = id;
     }
 
@@ -46,31 +42,15 @@ public class Bid {
         return bidderName;
     }
 
-    public void setBidderName(String bidderName) {
+    public void setBidderName( String bidderName ) {
         this.bidderName = bidderName;
     }
 
-    public Double getBidAmount() {
-        return bidAmount;
+    public String getBidDate() {
+        return bidDate;
     }
 
-    public void setBidAmount(Double bidAmount) {
-        this.bidAmount = bidAmount;
-    }
-
-    public Lot getLot() {
-        return lot;
-    }
-
-    public void setLot(Lot lot) {
-        this.lot = lot;
-    }
-
-    public LocalDateTime getBidDateTime() {
-        return bidDateTime;
-    }
-
-    public void setBidDateTime(LocalDateTime bidDateTime) {
-        this.bidDateTime = bidDateTime;
+    public void setBidDate( String bidDate ) {
+        this.bidDate = bidDate;
     }
 }

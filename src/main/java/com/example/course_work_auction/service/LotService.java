@@ -1,95 +1,122 @@
 package com.example.course_work_auction.service;
 
-import com.example.course_work_auction.dto.BidDto;
-import com.example.course_work_auction.dto.BidMapper;
-import com.example.course_work_auction.dto.FullLotDto;
-import com.example.course_work_auction.enums.LotState;
-import com.example.course_work_auction.exceptions.ResourceNotFoundException;
+import com.example.course_work_auction.dto.BidDTO;
+import com.example.course_work_auction.dto.CreateLotDTO;
+import com.example.course_work_auction.dto.FullLotDTO;
+import com.example.course_work_auction.dto.LotDTO;
+import com.example.course_work_auction.enums.LotStatus;
 import com.example.course_work_auction.model.Bid;
 import com.example.course_work_auction.model.Lot;
 import com.example.course_work_auction.repositories.BidRepository;
 import com.example.course_work_auction.repositories.LotRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister;
+import com.example.course_work_auction.view.FrequentView;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.EntityNotFoundException;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashMap;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class LotService {
+    private final LotRepository lotRepository;
+    private final BidRepository bidRepository;
 
-    @Autowired
-    private LotRepository lotRepository;
-
-    @Autowired
-    private BidRepository bidRepository;
-
-    @Autowired
-    private BidMapper bidMapper;
+    public LotService( LotRepository lotRepository, BidRepository bidRepository ) {
+        this.lotRepository = lotRepository;
+        this.bidRepository = bidRepository;
+    }
 
 
-    public Bid getFirstBidder(Long lotId) {
-        Lot lot = lotRepository.getById(lotId);
-        if (lot == null) {
-            throw new EntityNotFoundException("Lot not found with id " + lotId);
-        }
-        Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "bidTime"));
-        List<Bid> bids = bidRepository.findFirstByLotOrderByBidDateTimeAsc(lotId, pageable);
-        if (bids.isEmpty()) {
-            return null;
-        }
-        BidDto bidDto = bidMapper.toBidDto(bids.get(0));
+    public Lot createLot(CreateLotDTO createLotDTO){
+        Lot createdLot = createLotDTO.toLot();
+        createdLot.setStatus(LotStatus.CREATED.toString());
+        lotRepository.save(createdLot);
+        return createdLot;
+    }
+    public void startBargain(Long lotId){
+        Lot foundedLot = lotRepository.findById(lotId).get();
+        foundedLot.setStatus(LotStatus.STARTED.toString());
+        lotRepository.save(foundedLot);
+    }
+    public void createBid(Long lotId, String bidName){
+        Lot foundedLot = lotRepository.findById(lotId).get();
         Bid bid = new Bid();
-        bid.setId(bidDto.getId());
-        bid.setBidderName(bidDto.getBidderName());
-        bid.setBidDateTime(bidDto.getBidDateTime());
-        bid.setBidAmount(bidDto.getAmount());
-        return bid;
+        bid.setLot(foundedLot);
+        bid.setBidderName(bidName);
+        bid.setBidDate(LocalDate.now().toString());
+        bidRepository.save(bid);
+
+    }
+    public void stopBargain(Long id){
+        Lot foundedLot = lotRepository.findById(id).get();
+        foundedLot.setStatus(LotStatus.STOPPED.toString());
+        lotRepository.save(foundedLot);
+    }
+    public FullLotDTO getFullLot(Long id){
+        return FullLotDTO.fromLot(lotRepository.findById(id).get());
+    }
+    public BidDTO getFirstBidPerson(Long id){
+        Lot founded = lotRepository.findById(id).get();
+        return BidDTO.fromBid(founded.getBids().get(0));
+    }
+    public FrequentView getFrequentBid(Long id){
+        Lot founded = lotRepository.findById(id).get();
+        return bidRepository.findFrequentOne(id);
+    }
+    public List<LotDTO> getAllLots(String status, Integer pageNumber){
+        PageRequest pageRequest = PageRequest.of(pageNumber -1, 10);
+        List<Lot> founded = lotRepository.findAllByStatusContainingIgnoreCase(status);
+        List<LotDTO> needed = new ArrayList<>();
+        for(Lot lot: founded){
+            LotDTO dto = LotDTO.fromLot(lot);
+            needed.add(dto);
+        }
+        return needed;
+    }
+    public List<FullLotDTO> getAllFullLots(){
+        return lotRepository.findAll().stream()
+                .map(FullLotDTO::fromLot)
+                .collect(Collectors.toList());
+    }
+    public  void export(HttpServletResponse response) throws IOException {
+        List<FullLotDTO> lots = getAllFullLots();
+        StringWriter sw = new StringWriter();
+        CSVPrinter printer = new CSVPrinter(sw, CSVFormat.DEFAULT);
+        lots.stream()
+                .forEach(fullLotDTO -> {
+                    try{
+                        printer.printRecord(
+                                fullLotDTO.getId(),
+                                fullLotDTO.getStatus(),
+                                fullLotDTO.getTitle(),
+                                fullLotDTO.getDescription(),
+                                fullLotDTO.getStartPrice(),
+                                fullLotDTO.getBidPrice(),
+                                fullLotDTO.getCurrentPrice(),
+                                fullLotDTO.getLastBid().getBidderName());
+                    } catch (IOException e){
+                        throw new RuntimeException(e);
+                    }
+                });
+        printer.flush();
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=\"lots.csv\"");
+
+        PrintWriter pw = response.getWriter();
+        pw.write(sw.toString());
+        pw.flush();
+        pw.close();
+    }
+    public Lot findLotById(Long id){
+        return lotRepository.findById(id).get();
     }
 
-    public BidDto getMostFrequentBidder(Long lotID) {
-        Lot lot = lotRepository.findById(lotID)
-                .orElseThrow(() -> new ResourceNotFoundException("Lot not found with id: " + lotID));
-        List<Bid> bids = bidRepository.findByLot(lot);
-        if (bids.isEmpty()) {
-            throw new ResourceNotFoundException("Lot");
-        }
-        Map<String, Integer> bidderFrequencyMap = new HashMap<>();
-        for (Bid bid : bids) {
-            String bidderName = bid.getBidderName();
-            bidderFrequencyMap.put(bidderName, bidderFrequencyMap.getOrDefault(bidderName, 0) + 1);
-        }
-        String mostFrequentBidderName = Collections.max(bidderFrequencyMap.entrySet(),
-                Map.Entry.comparingByValue()).getKey();
-        LocalDateTime lastBidDateTime = bidRepository.findByLotIdOrderByBidDateTimeDesc(lot.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("No bids found for lot with id: " + lotID))
-                .getBidDateTime();
-        BidDto bidDto = new BidDto();
-        bidDto.setBidderName(mostFrequentBidderName);
-        bidDto.setBidDateTime(lastBidDateTime);
-        return bidDto;
-    }
-
-
-    public String getStatus(Long id) {
-        Lot lot = lotRepository.getById(id);
-        LotState state = lot.getStatus();
-        switch (state) {
-            case BIDDING_STARTED:
-                return "Bidding is currently ongoing";
-            case BIDDING_OVER:
-                return "Bidding has ended";
-            default:
-                return "Unknown status";
-        }
-    }
 }
