@@ -1,0 +1,5 @@
+databaseChangeLog:
+  - include:
+      file: db/scripts/create-lot-table.sql
+  - include:
+      file: db/scripts/create-bid-table.sql
