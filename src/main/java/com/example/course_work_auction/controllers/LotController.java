@@ -167,5 +167,4 @@ public class LotController {
     public void exportLots( HttpServletResponse response ) throws IOException {
         lotService.export(response);
     }
-
 }
