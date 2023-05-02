@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 @Service
 public class LotService {
     private final LotRepository lotRepository;
@@ -118,5 +119,6 @@ public class LotService {
     public Lot findLotById(Long id){
         return lotRepository.findById(id).get();
     }
+
 
 }
